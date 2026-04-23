@@ -1,0 +1,389 @@
+html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kliker Gabut - Modern Edition</title>
+    <!-- Library Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* --- TEMA & CSS --- */
+        :root {
+            --bg: #f0f2f5;
+            --card: #ffffff;
+            --text: #1a1a1a;
+            --primary: #6366f1;
+            --secondary: #64748b;
+            --accent: #f59e0b;
+            --success: #10b981;
+        }
+
+        [data-theme='dark'] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --primary: #818cf8;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            transition: background 0.3s, color 0.3s;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* --- LAYOUT SISTEM PAGE --- */
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
+            text-align: center;
+        }
+
+        .hidden {
+            transform: translateY(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- TOMBOL MODERN --- */
+        button {
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .btn-start { background: var(--primary); color: white; font-size: 1.5rem; width: 220px; }
+        .btn-start:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(99, 102, 241, 0.4); }
+        
+        .btn-nav { background: var(--secondary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+
+        /* --- GAMEPLAY ELEMENTS --- */
+        .click-target {
+            width: 240px;
+            height: 240px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            border-radius: 24px;
+            object-fit: cover;
+            user-select: none;
+            -webkit-user-drag: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .click-target:active { transform: scale(0.92); }
+
+        .score-display {
+            font-size: 4rem;
+            font-weight: 900;
+            margin: 10px 0;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .floating-text {
+            position: absolute;
+            pointer-events: none;
+            font-weight: bold;
+            color: var(--primary);
+            animation: floatUp 0.6s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.2); }
+        }
+
+        /* --- NOTIFIKASI MILESTONE --- */
+        .milestone-popup {
+            position: fixed;
+            top: 20%;
+            background: var(--accent);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-weight: 800;
+            box-shadow: 0 10px 20px rgba(245, 158, 11, 0.4);
+            display: none;
+            z-index: 1000;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- SETTINGS & BOARDS --- */
+        .card {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+            min-width: 300px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+
+        .leaderboard-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* --- UI UTILITIES --- */
+        .theme-toggle { position: fixed; top: 20px; right: 20px; z-index: 100; }
+        .back-btn { position: fixed; top: 20px; left: 20px; z-index: 100; }
+    </style>
+</head>
+<body data-theme="light">
+
+    <!-- Tombol Mode -->
+    <div class="theme-toggle">
+        <button onclick="toggleTheme()" style="background: var(--card); color: var(--text);">🌓 Dark/White</button>
+    </div>
+
+    <!-- 1. DASHBOARD UTAMA -->
+    <div id="page-home" class="page">
+        <h1 style="font-size: 3rem; margin-bottom: 5px;">🖱️Zemii Clicker</h1>
+        <p style="margin-bottom: 30px; opacity: 0.7;">Klik gambarnya sampai kamu jadi legenda!</p>
+        
+        <button class="btn-start" onclick="navigateTo('page-game')">🚀 START</button>
+        <button class="btn-nav" onclick="navigateTo('page-leaderboard')" style="background: var(--accent);">🏆 LEADERBOARD</button>
+        <button class="btn-nav" onclick="navigateTo('page-settings')">⚙️ SETTINGS</button>
+    </div>
+
+    <!-- 2. HALAMAN GAME -->
+    <div id="page-game" class="page hidden">
+        <button class="btn-nav back-btn" onclick="navigateTo('page-home')">⬅ EXIT</button>
+        
+        <div class="score-display" id="score-val">0</div>
+        
+        <!-- PENTING: Ganti LINK GAMBAR di src bawah ini -->
+        <img src="https://files.catbox.moe/hs70e1.webp" 
+             id="main-image" 
+             class="click-target" 
+             onclick="handleClick(event)">
+        
+        <p id="time-display" style="margin-top: 20px; font-weight: bold; opacity: 0.6;">Time: 0s</p>
+        
+        <div id="milestone-box" class="milestone-popup">
+            🎉 SELAMAT! ANDA CLAIM <span id="milestone-count">100</span> KLIK! 🎉
+        </div>
+    </div>
+
+    <!-- 3. HALAMAN SETTINGS -->
+    <div id="page-settings" class="page hidden">
+        <div class="card">
+            <h2>⚙️ PENGATURAN</h2>
+            <div class="setting-item">
+                <span>🔊 Suara Klik</span>
+                <input type="checkbox" id="set-sound" checked style="width: 20px; height: 20px;">
+            </div>
+            <div class="setting-item">
+                <span>✨ Efek Klik</span>
+                <input type="checkbox" id="set-effect" checked style="width: 20px; height: 20px;">
+            </div>
+            <button class="btn-start" onclick="navigateTo('page-home')" style="width: 100%; margin-top: 20px;">SAVE</button>
+        </div>
+    </div>
+
+    <!-- 4. HALAMAN LEADERBOARD -->
+    <div id="page-leaderboard" class="page hidden">
+        <button class="btn-nav back-btn" onclick="navigateTo('page-home')">⬅ BACK</button>
+        <h2 style="margin-bottom: 30px;">🏆 PAPAN PERINGKAT</h2>
+        
+        <div class="leaderboard-container">
+            <div class="card">
+                <h3 style="color: var(--primary);">Top Klikers</h3>
+                <div id="list-clicks">Memuat data...</div>
+            </div>
+            <div class="card">
+                <h3 style="color: var(--accent);">Paling Betah (Time)</h3>
+                <div id="list-time">Memuat data...</div>
+            </div>
+        </div>
+        <button class="btn-nav" onclick="navigateTo('page-home')" style="margin-top: 30px;">KEMBALI KE MENU</button>
+    </div>
+
+    <script>
+        /* --- LOGIKA JAVASCRIPT --- */
+        let score = 0;
+        let playTime = 0;
+        let gameActive = false;
+        let timerInterval;
+        
+        // --- 1. SETING AUDIO (GANTI LINK DISINI) ---
+        const clickAudio = new Audio('https://files.catbox.moe/jib91e.mp3');
+
+        // --- 2. SETING SUPABASE (GANTI DATA DISINI) ---
+        const SB_URL = "https://bjveupxrpwzizdulqidv.supabase.co"; 
+        const SB_KEY = "sb_publishable_wq4AQb46N3_k83FvT29kFw_StqnZM3I";
+        
+        // Cek jika Supabase sudah diisi
+        const supabaseClient = (SB_URL !== "https://bjveupxrpwzizdulqidv.supabase.co") ? supabase.createClient(SB_URL, SB_KEY) : null;
+
+        // Navigasi Page
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+            
+            // Start timer jika masuk ke game
+            if(pageId === 'page-game') {
+                startGame();
+            } else {
+                stopGame();
+                if(pageId === 'page-leaderboard') loadLeaderboard();
+            }
+        }
+
+        // Dark Mode Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const current = body.getAttribute('data-theme');
+            body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+        }
+
+        // Logic Klik
+        function handleClick(e) {
+            score++;
+            document.getElementById('score-val').innerText = score;
+
+            // Efek Suara
+            if(document.getElementById('set-sound').checked) {
+                clickAudio.currentTime = 0;
+                clickAudio.play().catch(() => {}); // Handle auto-play block
+            }
+
+            // Efek Visual Partikel
+            if(document.getElementById('set-effect').checked) {
+                createFloatingText(e.pageX, e.pageY);
+            }
+
+            // Milestone 100
+            if(score % 100 === 0) {
+                showMilestone(score);
+                saveToDatabase(); // Auto save setiap 100 klik
+            }
+        }
+
+        function createFloatingText(x, y) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = '+1';
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 600);
+        }
+
+        function showMilestone(currentScore) {
+            const box = document.getElementById('milestone-box');
+            document.getElementById('milestone-count').innerText = currentScore;
+            box.style.display = 'block';
+            setTimeout(() => { box.style.display = 'none'; }, 3000);
+        }
+
+        // Timer Logic
+        function startGame() {
+            gameActive = true;
+            if(!timerInterval) {
+                timerInterval = setInterval(() => {
+                    playTime++;
+                    document.getElementById('time-display').innerText = `Time: ${playTime}s`;
+                    if(playTime % 30 === 0) saveToDatabase(); // Auto save setiap 30 detik
+                }, 1000);
+            }
+        }
+
+        function stopGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            saveToDatabase();
+        }
+
+        // --- SUPABASE INTEGRATION ---
+        async function saveToDatabase() {
+            if(!supabaseClient) {
+                console.log("Supabase belum dikoneksi.");
+                return;
+            }
+
+            const username = localStorage.getItem('clicker_username') || "Anon_" + Math.floor(Math.random()*1000);
+            localStorage.setItem('clicker_username', username);
+
+            const { error } = await supabaseClient
+                .from('players')
+                .upsert({ 
+                    username: username, 
+                    total_clicks: score, 
+                    time_played: playTime 
+                }, { onConflict: 'username' });
+
+            if(error) console.error("Error Simpan:", error);
+        }
+
+        async function loadLeaderboard() {
+            if(!supabaseClient) return;
+
+            // Load Clicks
+            const { data: topClicks } = await supabaseClient
+                .from('players')
+                .select('username, total_clicks')
+                .order('total_clicks', { ascending: false })
+                .limit(5);
+
+            if(topClicks) {
+                let html = "";
+                topClicks.forEach((p, i) => {
+                    html += `<p>${i+1}. <b>${p.username}</b>: ${p.total_clicks} Klik</p>`;
+                });
+                document.getElementById('list-clicks').innerHTML = html || "Belum ada data";
+            }
+
+            // Load Time
+            const { data: topTime } = await supabaseClient
+                .from('players')
+                .select('username, time_played')
+                .order('time_played', { ascending: false })
+                .limit(5);
+
+            if(topTime) {
+                let html = "";
+                topTime.forEach((p, i) => {
+                    html += `<p>${i+1}. <b>${p.username}</b>: ${p.time_played} Detik</p>`;
+                });
+                document.getElementById('list-time').innerHTML = html || "Belum ada data";
+            }
+        }
+    </script>
+</body>
+</html>
